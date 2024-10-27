@@ -39,7 +39,7 @@ default_init(void) {
     list_init(&free_list);
     nr_free = 0;
 }
-```cpp
+```
 default_init_memmap：这个函数用于初始化一个物理空闲块，将该块中的每一页按地址大小有序添加到块链表之中。具体实现过程为：首先进行一系列断言判断，其次设置该空闲块中的flags、property和ref属性，特别的块首页的property属性设为n，表示该块连续有n个页。然后对应的修改空闲块链表和空闲页数的计数器。在插入到空闲块链表，按照地址进行有序的插入。具体代码如下：
 ```cpp
 static void
@@ -69,7 +69,7 @@ default_init_memmap(struct Page *base, size_t n) {
         }
     }
 }
-```cpp
+```
 
 
 
@@ -104,7 +104,7 @@ default_alloc_pages(size_t n) {
     }
     return page;
 }
-```cpp
+```
 
 default_free_pages： 这个函数的作用是将页面重新链接到空闲列表，可能会将小空闲块合并成大空闲块。具体实现过程为：首先进行一系列断言判断，然后如果块中的页不是保留页并且property为0，则将该页释放，块首页property设为n。然后将该块按顺序添加到空闲块链表之中。然后对空闲块链表进行两次判断，分别判断空闲块是否能与前一块合并和后一块合并，如果可以就进行合并。
 
@@ -158,7 +158,7 @@ default_free_pages(struct Page *base, size_t n) {
         }
     }
 }
-```cpp
+```
 
 改进算法：default_pmm采用的是first_fit算法，那么在遍历时必然也是按地址顺序访问，这个无法改变。但是在源代码的查找空闲块进行遍历，都会顺序遍历每块中的每一页，效率低下。既然是块，可以考虑分块查找，即使用块首链表，链表中的每一项都是空闲块中的第一页。这样在分配和释放时，只需使用块首链表查找更快。
 
