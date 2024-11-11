@@ -134,23 +134,7 @@ _fifo_set_unswappable(struct mm_struct *mm, uintptr_t addr)
 
 static int
 _fifo_tick_event(struct mm_struct *mm)
-{
-    list_entry_t *head = (list_entry_t*)mm->sm_priv;
-    list_entry_t *ptr = head->next;
-    while(ptr->next != head)
-    {
-        struct Page *temp = le2page(ptr, pra_page_link);
-        if(temp->visited == 1){
-            temp->visited = 0;
-            list_entry_t *let_temp = ptr->prev;
-            list_del(ptr);
-            list_add(head, ptr);
-            ptr = let_temp;
-        }
-        ptr = ptr->next;
-    }
-    return 0;
-}
+{ return 0; }
 
 
 struct swap_manager swap_manager_fifo =

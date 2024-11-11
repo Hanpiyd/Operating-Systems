@@ -52,6 +52,7 @@ _fifo_map_swappable(struct mm_struct *mm, uintptr_t addr, struct Page *page, int
 
     //(1)link the most recent arrival page at the back of the pra_list_head qeueue.
     list_add(head, entry);
+    page->visited = 1;
     return 0;
 }
 /*
@@ -119,7 +120,6 @@ _fifo_check_swap(void) {
     return 0;
 }
 
-
 static int
 _fifo_init(void)
 {
@@ -134,7 +134,88 @@ _fifo_set_unswappable(struct mm_struct *mm, uintptr_t addr)
 
 static int
 _fifo_tick_event(struct mm_struct *mm)
-{ return 0; }
+{
+    list_entry_t *head = (list_entry_t*)mm->sm_priv;
+    list_entry_t *ptr = head->next;
+    while(ptr->next != head)
+    {
+        struct Page *temp = le2page(ptr, pra_page_link);
+        if(temp->visited == 1){
+            temp->visited = 0;
+            list_entry_t *let_temp = ptr->prev;
+            list_del(ptr);
+            list_add(head, ptr);
+            ptr = let_temp;
+        }
+        ptr = ptr->next;
+    }
+    return 0;
+}
+
+static int
+_lru_check_swap(void) {
+    cprintf("write Virt Page c in fifo_check_swap\n");
+    *(unsigned char *)0x3000 = 0x0c;
+    assert(pgfault_num==4);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page a in fifo_check_swap\n");
+    *(unsigned char *)0x1000 = 0x0a;
+    assert(pgfault_num==4);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page d in fifo_check_swap\n");
+    *(unsigned char *)0x4000 = 0x0d;
+    assert(pgfault_num==4);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page b in fifo_check_swap\n");
+    *(unsigned char *)0x2000 = 0x0b;
+    assert(pgfault_num==4);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page e in fifo_check_swap\n");
+    *(unsigned char *)0x5000 = 0x0e;
+    assert(pgfault_num==5);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page b in fifo_check_swap\n");
+    *(unsigned char *)0x2000 = 0x0b;
+    assert(pgfault_num==5);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page a in fifo_check_swap\n");
+    *(unsigned char *)0x1000 = 0x0a;
+    assert(pgfault_num==5);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page b in fifo_check_swap\n");
+    *(unsigned char *)0x2000 = 0x0b;
+    assert(pgfault_num==5);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page c in fifo_check_swap\n");
+    *(unsigned char *)0x3000 = 0x0c;
+    assert(pgfault_num==6);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page d in fifo_check_swap\n");
+    *(unsigned char *)0x4000 = 0x0d;
+    assert(pgfault_num==7);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page e in fifo_check_swap\n");
+    *(unsigned char *)0x5000 = 0x0e;
+    assert(pgfault_num==8);
+    _fifo_tick_event(check_mm_struct);
+
+    cprintf("write Virt Page a in fifo_check_swap\n");
+    *(unsigned char *)0x1000 = 0x0a;
+    assert(pgfault_num==9);
+    _fifo_tick_event(check_mm_struct);
+
+    return 0;
+}
 
 
 struct swap_manager swap_manager_fifo =
@@ -146,5 +227,5 @@ struct swap_manager swap_manager_fifo =
      .map_swappable   = &_fifo_map_swappable,
      .set_unswappable = &_fifo_set_unswappable,
      .swap_out_victim = &_fifo_swap_out_victim,
-     .check_swap      = &_fifo_check_swap,
+     .check_swap      = &_lru_check_swap,
 };
