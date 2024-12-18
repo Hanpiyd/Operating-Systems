@@ -478,6 +478,25 @@ int do_pgfault(struct mm_struct *mm, uint_t error_code, uintptr_t addr)
             goto failed;
         }
     }
+    else if ((*ptep & PTE_V) && (error_code == 0xf))
+    {
+        struct Page *page = pte2page(*ptep);
+        if (page_ref(page) == 1)
+        {
+            page_insert(mm->pgdir, page, addr, perm);
+        }
+        else
+        {
+            struct Page *npage = alloc_page();
+            assert(npage != NULL);
+            memcpy(page2kva(npage), page2kva(page), PGSIZE);
+            if (page_insert(mm->pgdir, npage, addr, perm) != 0)
+            {
+                cprintf("page_insert in do_pgfault failed\n");
+                goto failed;
+            }
+        }
+    }
     else
     {
         /*LAB3 EXERCISE 3: YOUR CODE
